@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
+import os
 
 import torch
 from pytorch_lightning import Trainer
@@ -57,12 +58,43 @@ def main():
         num_speakers = int(config["num_speakers"])
         sample_rate = int(config["audio"]["sample_rate"])
 
-    trainer = Trainer.from_argparse_args(args)
+    callbacks = []
     if args.checkpoint_epochs is not None:
-        trainer.callbacks = [ModelCheckpoint(every_n_epochs=args.checkpoint_epochs)]
+        callbacks.append(ModelCheckpoint(every_n_epochs=args.checkpoint_epochs))
         _LOGGER.debug(
             "Checkpoints will be saved every %s epoch(s)", args.checkpoint_epochs
         )
+
+    # Save best ckpt
+    best_ckpt_dir = args.dataset_dir / "best_ckpt"
+    if not os.path.exists(best_ckpt_dir):
+        os.makedirs(best_ckpt_dir)
+
+    callbacks.append(ModelCheckpoint(
+        save_top_k=1,
+        monitor="loss_disc_all",
+        mode="min",
+        dirpath=best_ckpt_dir,
+        filename='best-ckpt-{epoch:02d}-{loss_disc_all:.2f}'
+    ))
+
+    callbacks.append(ModelCheckpoint(
+        save_top_k=1,
+        monitor="val_loss",
+        mode="min",
+        dirpath=best_ckpt_dir,
+        filename='best-ckpt-{epoch:02d}-{val_loss:.2f}'
+    ))
+
+    callbacks.append(ModelCheckpoint(
+        save_top_k=1,
+        monitor="loss_gen_all",
+        mode="min",
+        dirpath=best_ckpt_dir,
+        filename='best-ckpt-{epoch:02d}-{loss_gen_all:.2f}'
+    ))
+
+    trainer = Trainer.from_argparse_args(args, callbacks=callbacks)
 
     dict_args = vars(args)
     if args.quality == "x-low":
