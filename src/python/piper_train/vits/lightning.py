@@ -64,7 +64,7 @@ class VitsModel(pl.LightningModule):
         batch_size: int = 1,
         lr_decay: float = 0.999875,
         init_lr_ratio: float = 1.0,
-        warmup_epochs: int = 0,
+        warmup_epochs: int = 5,
         c_mel: int = 45,
         c_kl: float = 1.0,
         grad_clip: Optional[float] = None,
@@ -162,6 +162,8 @@ class VitsModel(pl.LightningModule):
             ),
             num_workers=self.hparams.num_workers,
             batch_size=self.hparams.batch_size,
+            pin_memory=True,
+            persistent_workers=self.hparams.num_workers > 0,
         )
 
     def val_dataloader(self):
@@ -173,6 +175,8 @@ class VitsModel(pl.LightningModule):
             ),
             num_workers=self.hparams.num_workers,
             batch_size=self.hparams.batch_size,
+            pin_memory=True,
+            persistent_workers=self.hparams.num_workers > 0,
         )
 
     def test_dataloader(self):
@@ -184,6 +188,8 @@ class VitsModel(pl.LightningModule):
             ),
             num_workers=self.hparams.num_workers,
             batch_size=self.hparams.batch_size,
+            pin_memory=True,
+            persistent_workers=self.hparams.num_workers > 0,
         )
 
     def training_step(self, batch: Batch, batch_idx: int, optimizer_idx: int):
@@ -259,6 +265,11 @@ class VitsModel(pl.LightningModule):
             loss_gen_all = loss_gen + loss_fm + loss_mel + loss_dur + loss_kl
 
             self.log("loss_gen_all", loss_gen_all)
+            self.log("loss_g/mel", loss_mel)  # Độ khớp về phổ âm (chất lượng âm thanh)
+            self.log("loss_g/kl", loss_kl)  # Độ ổn định của bộ mã hóa
+            self.log("loss_g/dur", loss_dur)  # Độ chính xác của tốc độ đọc
+            self.log("loss_g/fm", loss_fm)  # Feature matching loss (độ chi tiết)
+            self.log("loss_g/gen", loss_gen)  # Adversarial loss (độ thật của giọng)
 
             return loss_gen_all
 
@@ -303,7 +314,7 @@ class VitsModel(pl.LightningModule):
                 self.logger.experiment.add_audio(
                     tag, test_audio, sample_rate=self.hparams.sample_rate
                 )
-            return super().on_validation_end()
+        return super().on_validation_end()
 
     def configure_optimizers(self):
         optimizers = [
@@ -342,10 +353,12 @@ class VitsModel(pl.LightningModule):
             type=int,
             help="Exclude utterances with phoneme id lists longer than this",
         )
+        parser.add_argument("--num-workers", type=int, default=1, help="Number of dataloader workers")
         #
         parser.add_argument("--hidden-channels", type=int, default=192)
         parser.add_argument("--inter-channels", type=int, default=192)
         parser.add_argument("--filter-channels", type=int, default=768)
+        parser.add_argument("--upsample-initial-channel", type=int, default=256)
         parser.add_argument("--n-layers", type=int, default=6)
         parser.add_argument("--n-heads", type=int, default=2)
         #
