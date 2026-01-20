@@ -28,7 +28,7 @@ def main():
     parser.add_argument(
         "--quality",
         default="medium",
-        choices=("x-low", "medium", "high"),
+        choices=("x-low", "medium-low", "medium", "high"),
         help="Quality/size of model (default: medium)",
     )
     parser.add_argument(
@@ -71,27 +71,11 @@ def main():
         os.makedirs(best_ckpt_dir)
 
     callbacks.append(ModelCheckpoint(
-        save_top_k=1,
-        monitor="loss_disc_all",
-        mode="min",
-        dirpath=best_ckpt_dir,
-        filename='best-ckpt-{epoch:02d}-{loss_disc_all:.2f}'
-    ))
-
-    callbacks.append(ModelCheckpoint(
-        save_top_k=1,
+        save_top_k=3,
         monitor="val_loss",
         mode="min",
         dirpath=best_ckpt_dir,
         filename='best-ckpt-{epoch:02d}-{val_loss:.2f}'
-    ))
-
-    callbacks.append(ModelCheckpoint(
-        save_top_k=1,
-        monitor="loss_gen_all",
-        mode="min",
-        dirpath=best_ckpt_dir,
-        filename='best-ckpt-{epoch:02d}-{loss_gen_all:.2f}'
     ))
 
     trainer = Trainer.from_argparse_args(args, callbacks=callbacks)
@@ -101,6 +85,13 @@ def main():
         dict_args["hidden_channels"] = 96
         dict_args["inter_channels"] = 96
         dict_args["filter_channels"] = 384
+    elif args.quality == "medium-low":
+        # Balanced configuration between x-low and medium
+        # Optimized for mobile inference while maintaining good quality
+        dict_args["hidden_channels"] = 128
+        dict_args["inter_channels"] = 128
+        dict_args["filter_channels"] = 512
+        dict_args["upsample_initial_channel"] = 192
     elif args.quality == "high":
         dict_args["resblock"] = "1"
         dict_args["resblock_kernel_sizes"] = (3, 7, 11)
