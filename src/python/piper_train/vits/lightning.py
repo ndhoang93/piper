@@ -64,7 +64,7 @@ class VitsModel(pl.LightningModule):
         batch_size: int = 1,
         lr_decay: float = 0.999875,
         init_lr_ratio: float = 1.0,
-        warmup_epochs: int = 5,
+        warmup_epochs: int = 10,
         c_mel: int = 45,
         c_kl: float = 1.0,
         grad_clip: Optional[float] = None,
