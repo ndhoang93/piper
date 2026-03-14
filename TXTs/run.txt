@@ -1,0 +1,36 @@
+python3 -m piper_train.preprocess \
+  --language vi \
+  --input-dir /home/zxcv/Projects/python/dataset_filter_and_clean/vdc_audio/ \
+  --output-dir /home/zxcv/piper_train/vdc_audio_real_v2/ \
+  --dataset-format ljspeech \
+  --single-speaker \
+  --sample-rate 22050
+
+
+
+python3 -m piper_train \
+    --dataset-dir /home/zxcv/piper_train/vdc_audio_real_v2/ \
+    --quality medium \
+    --gradient_clip_val 1.0 \
+    --precision 16 \
+    --accelerator gpu \
+    --devices 1 \
+    --batch-size 24 \
+    --validation-split 0.03 \
+    --num-test-examples 25 \
+    --max_epochs 3000 \
+    --num-workers 4 \
+    --benchmark True \
+    --resume_from_checkpoint /home/zxcv/piper_train/vdc_audio_real/best_ckpt/best-ckpt-epoch=2311-val_loss=41.93.ckpt \
+    --checkpoint-epochs 1
+
+====================
+
+tensorboard --logdir /home/zxcv/piper_train/vdc_audio_real/lightning_logs
+
+==============
+python3 -m piper_train.export_onnx \
+/home/zxcv/piper_train/vdc_audio_real/lightning_logs/version_0/checkpoints/*.ckpt \
+/home/zxcv/piper_train/hai_yen_real/onnx/model.onnx
+
+cp /workspace/training/lightning_logs/version_0/checkpoints/*.ckpt /workspace/training/best_ckpt
