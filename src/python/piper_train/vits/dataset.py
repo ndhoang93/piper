@@ -129,6 +129,25 @@ class PiperDataset(Dataset):
         )
 
 
+class TestSentenceDataset(Dataset):
+    """Lightweight dataset for test sentences (inference only, no audio needed)."""
+
+    def __init__(self, phoneme_ids_list: List[List[int]], texts: List[str]):
+        self.items = list(zip(phoneme_ids_list, texts))
+
+    def __len__(self):
+        return len(self.items)
+
+    def __getitem__(self, idx) -> UtteranceTensors:
+        phoneme_ids, text = self.items[idx]
+        return UtteranceTensors(
+            phoneme_ids=LongTensor(phoneme_ids),
+            spectrogram=FloatTensor(1, 1),
+            audio_norm=FloatTensor(1, 1),
+            text=text,
+        )
+
+
 class UtteranceCollate:
     def __init__(self, is_multispeaker: bool, segment_size: int):
         self.is_multispeaker = is_multispeaker

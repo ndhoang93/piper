@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from .commons import slice_segments
-from .dataset import Batch, PiperDataset, UtteranceCollate
+from .dataset import Batch, PiperDataset, TestSentenceDataset, UtteranceCollate
 from .losses import discriminator_loss, feature_loss, generator_loss, kl_loss
 from .mel_processing import mel_spectrogram_torch, spec_to_mel_torch
 from .models import MultiPeriodDiscriminator, SynthesizerTrn
@@ -58,6 +58,7 @@ class VitsModel(pl.LightningModule):
         segment_size: int = 8192,
         # training
         dataset: Optional[List[Union[str, Path]]] = None,
+        test_sentences: Optional[List[dict]] = None,
         learning_rate: float = 2e-4,
         betas: Tuple[float, float] = (0.8, 0.99),
         eps: float = 1e-9,
@@ -112,7 +113,7 @@ class VitsModel(pl.LightningModule):
         self._train_dataset: Optional[Dataset] = None
         self._val_dataset: Optional[Dataset] = None
         self._test_dataset: Optional[Dataset] = None
-        self._load_datasets(validation_split, num_test_examples, max_phoneme_ids)
+        self._load_datasets(validation_split, num_test_examples, max_phoneme_ids, test_sentences)
 
         # State kept between training optimizers
         self._y = None
@@ -123,6 +124,7 @@ class VitsModel(pl.LightningModule):
         validation_split: float,
         num_test_examples: int,
         max_phoneme_ids: Optional[int] = None,
+        test_sentences: Optional[List[dict]] = None,
     ):
         if self.hparams.dataset is None:
             _LOGGER.debug("No dataset to load")
@@ -131,12 +133,30 @@ class VitsModel(pl.LightningModule):
         full_dataset = PiperDataset(
             self.hparams.dataset, max_phoneme_ids=max_phoneme_ids
         )
-        valid_set_size = int(len(full_dataset) * validation_split)
-        train_set_size = len(full_dataset) - valid_set_size - num_test_examples
 
-        self._train_dataset, self._test_dataset, self._val_dataset = random_split(
-            full_dataset, [train_set_size, num_test_examples, valid_set_size]
-        )
+        if test_sentences is not None:
+            self._test_dataset = TestSentenceDataset(
+                phoneme_ids_list=[s["phoneme_ids"] for s in test_sentences],
+                texts=[s["text"] for s in test_sentences],
+            )
+            valid_set_size = int(len(full_dataset) * validation_split)
+            train_set_size = len(full_dataset) - valid_set_size
+
+            self._train_dataset, self._val_dataset = random_split(
+                full_dataset, [train_set_size, valid_set_size]
+            )
+            _LOGGER.info(
+                "Using %s custom test sentence(s). "
+                "--num-test-examples is ignored.",
+                len(self._test_dataset),
+            )
+        else:
+            valid_set_size = int(len(full_dataset) * validation_split)
+            train_set_size = len(full_dataset) - valid_set_size - num_test_examples
+
+            self._train_dataset, self._test_dataset, self._val_dataset = random_split(
+                full_dataset, [train_set_size, num_test_examples, valid_set_size]
+            )
 
     def forward(self, text, text_lengths, scales, sid=None):
         noise_scale = scales[0]
@@ -162,6 +182,7 @@ class VitsModel(pl.LightningModule):
             ),
             num_workers=self.hparams.num_workers,
             batch_size=self.hparams.batch_size,
+            shuffle=True,
             pin_memory=True,
             persistent_workers=self.hparams.num_workers > 0,
         )
@@ -270,6 +291,8 @@ class VitsModel(pl.LightningModule):
             self.log("loss_g/dur", loss_dur)  # Độ chính xác của tốc độ đọc
             self.log("loss_g/fm", loss_fm)  # Feature matching loss (độ chi tiết)
             self.log("loss_g/gen", loss_gen)  # Adversarial loss (độ thật của giọng)
+            if self.training:
+                self.log("lr", self.optimizers()[0].param_groups[0]["lr"])
 
             return loss_gen_all
 
@@ -309,7 +332,7 @@ class VitsModel(pl.LightningModule):
                 )
                 test_audio = self(text, text_lengths, scales, sid=sid).detach()
                 # Scale to make louder in [-1, 1]
-                test_audio = test_audio * (1.0 / max(0.01, abs(test_audio).max()))
+                test_audio = test_audio * (1.0 / max(0.01, abs(test_audio).max().item()))
                 tag = test_utt.text or str(utt_idx)
                 self.logger.experiment.add_audio(
                     tag, test_audio, sample_rate=self.hparams.sample_rate
@@ -349,11 +372,21 @@ class VitsModel(pl.LightningModule):
         parser.add_argument("--validation-split", type=float, default=0.1)
         parser.add_argument("--num-test-examples", type=int, default=5)
         parser.add_argument(
+            "--test-sentences",
+            type=str,
+            default=None,
+            help="Path to a text file with custom test sentences (one per line). "
+                 "These are phonemized and used for TensorBoard audio generation "
+                 "instead of random samples from the training dataset.",
+        )
+        parser.add_argument(
             "--max-phoneme-ids",
             type=int,
             help="Exclude utterances with phoneme id lists longer than this",
         )
         parser.add_argument("--num-workers", type=int, default=1, help="Number of dataloader workers")
+        parser.add_argument("--learning-rate", type=float, default=2e-4, help="Initial learning rate")
+        parser.add_argument("--lr-decay", type=float, default=0.999875, help="Exponential LR decay factor per epoch")
         #
         parser.add_argument("--hidden-channels", type=int, default=192)
         parser.add_argument("--inter-channels", type=int, default=192)

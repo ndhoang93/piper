@@ -42,8 +42,8 @@ def piecewise_rational_quadratic_transform(
 
 
 def searchsorted(bin_locations, inputs, eps=1e-6):
-    # bin_locations[..., -1] += eps
-    bin_locations[..., bin_locations.size(-1) - 1] += eps
+    bin_locations = bin_locations.clone()
+    bin_locations[..., -1] += eps
     return torch.sum(inputs[..., None] >= bin_locations, dim=-1) - 1
 
 

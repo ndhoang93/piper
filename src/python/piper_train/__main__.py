@@ -6,7 +6,7 @@ import os
 
 import torch
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 from .vits.lightning import VitsModel
 
@@ -35,6 +35,12 @@ def main():
         "--resume_from_single_speaker_checkpoint",
         help="For multi-speaker models only. Converts a single-speaker checkpoint to multi-speaker and resumes training",
     )
+    parser.add_argument(
+        "--early-stopping-patience",
+        type=int,
+        default=None,
+        help="Stop training after N epochs without val_loss improvement (disabled by default)",
+    )
     Trainer.add_argparse_args(parser)
     VitsModel.add_model_specific_args(parser)
     parser.add_argument("--seed", type=int, default=1234)
@@ -58,6 +64,29 @@ def main():
         num_speakers = int(config["num_speakers"])
         sample_rate = int(config["audio"]["sample_rate"])
 
+    # Phonemize custom test sentences
+    test_sentences = None
+    if args.test_sentences is not None:
+        from piper_phonemize import phonemize_espeak, phoneme_ids_espeak
+
+        language = config["espeak"]["voice"]
+        test_sentences = []
+        with open(args.test_sentences, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                phonemes = [
+                    p for sentence_phonemes in phonemize_espeak(line, language)
+                    for p in sentence_phonemes
+                ]
+                ids = phoneme_ids_espeak(phonemes)
+                test_sentences.append({"text": line, "phoneme_ids": ids})
+        _LOGGER.info(
+            "Phonemized %s test sentence(s) from %s",
+            len(test_sentences), args.test_sentences,
+        )
+
     callbacks = []
     if args.checkpoint_epochs is not None:
         callbacks.append(ModelCheckpoint(every_n_epochs=args.checkpoint_epochs))
@@ -78,9 +107,20 @@ def main():
         filename='best-ckpt-{epoch:02d}-{val_loss:.2f}'
     ))
 
+    if args.early_stopping_patience is not None:
+        callbacks.append(EarlyStopping(
+            monitor="val_loss",
+            patience=args.early_stopping_patience,
+            mode="min",
+        ))
+        _LOGGER.debug(
+            "Early stopping enabled with patience=%s epochs", args.early_stopping_patience
+        )
+
     trainer = Trainer.from_argparse_args(args, callbacks=callbacks)
 
     dict_args = vars(args)
+    dict_args["test_sentences"] = test_sentences
     if args.quality == "x-low":
         dict_args["hidden_channels"] = 96
         dict_args["inter_channels"] = 96
