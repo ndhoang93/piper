@@ -1,8 +1,8 @@
 python3 -m piper_train.preprocess \
-  --max-workers 16 \
-  --language vi-vn-x-south \
-  --input-dir /home/zxcv/Projects/python/viterbox-tts/dong_linh_clone_5_48_68/ \
-  --output-dir /home/zxcv/piper_train/ref_dong_linh_filter/ \
+  --max-workers 22 \
+  --language vi \
+  --input-dir /workspace/dataset/ \
+  --output-dir /workspace/train/ \
   --dataset-format ljspeech \
   --single-speaker \
   --sample-rate 22050
@@ -10,7 +10,7 @@ python3 -m piper_train.preprocess \
 
 
 python3 -m piper_train \
-    --dataset-dir /home/zxcv/piper_train/ref_dong_linh_filter/ \
+    --dataset-dir /workspace/train/ \
     --quality medium \
     --gradient_clip_val 1.0 \
     --learning-rate 5e-5 \
@@ -19,11 +19,11 @@ python3 -m piper_train \
     --devices 1 \
     --batch-size 32 \
     --validation-split 0.05 \
-    --test-sentences /home/zxcv/Projects/python/piper_hoangnd/TXTs/test_set.txt \
+    --test-sentences /workspace/piper/TXTs/test_set.txt \
     --max_epochs 3000 \
     --early-stopping-patience 100 \
     --num-workers 4 \
-    --resume_from_checkpoint /home/zxcv/Downloads/onnx/epoch=2278-step=1488236.ckpt \
+    --resume_from_checkpoint /workspace/dataset/epoch=2278-step=1488236.ckpt \
     --checkpoint-epochs 1
 
 ================
