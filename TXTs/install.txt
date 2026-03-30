@@ -1,14 +1,16 @@
+git clone https://github.com/ndhoang93/piper.git
+
 cd piper/src/python
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt install python3.10-dev && sudo apt install python3.10-venv
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt install -y python3.10-dev && sudo apt install -y python3.10-venv
 python3.10 -m venv .venv
 source .venv/bin/activate
 pip install pip==24.0
-pip3 install --upgrade wheel setuptools
+pip3 install --upgrade wheel setuptools==80.9.0
 pip3 install -e .
 pip install 'numpy>=1.19.0,<2.0'
 pip install torchmetrics==0.11.4
-pip install six
-sudo apt-get install espeak-ng
+pip install six gdown
+sudo apt-get install espeak-ng ncdu -y
 ./build_monotonic_align.sh
 
