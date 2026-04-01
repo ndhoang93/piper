@@ -1,8 +1,8 @@
 python3 -m piper_train.preprocess \
-  --max-workers 22 \
+  --max-workers 16 \
   --language vi \
-  --input-dir /workspace/dataset/ \
-  --output-dir /workspace/train/ \
+  --input-dir /home/zxcv/Projects/python/viterbox-tts/gemini_kore_45_75_55/ \
+  --output-dir /home/zxcv/piper_train/ref_gemini_kore/ \
   --dataset-format ljspeech \
   --single-speaker \
   --sample-rate 22050
@@ -29,26 +29,27 @@ python3 -m piper_train \
 ================
 
 python3 -m piper_train \
-    --dataset-dir /home/zxcv/piper_train/tran_van_filter/ \
+    --dataset-dir /home/zxcv/piper_train/ref_gemini_kore/ \
+    --validation-dataset-dir /home/zxcv/piper_train/ref_gemini_kore/validate_set/ \
     --quality medium \
     --gradient_clip_val 1.0 \
+    --learning-rate 2e-4 \
     --precision 16 \
     --accelerator gpu \
     --devices 1 \
     --batch-size 32 \
-    --validation-split 0.04 \
     --test-sentences /home/zxcv/Projects/python/piper_hoangnd/TXTs/test_set.txt \
     --max_epochs 3000 \
     --early-stopping-patience 120 \
-    --num-workers 4 \
-    --resume_from_checkpoint /home/zxcv/Downloads/epoch=2221-step=1424624.ckpt \
+    --num-workers 8 \
+    --resume_from_checkpoint /home/zxcv/Projects/python/piper_hoangnd/src/python/vi_base.ckpt \
     --checkpoint-epochs 1
 
 ====================
 
-tensorboard --logdir /workspace/training/lightning_logs
+tensorboard --logdir /workspace/train/lightning_logs
 
-tensorboard --logdir /home/zxcv/piper_train/ref_dong_linh_filter/lightning_logs
+tensorboard --logdir /home/zxcv/piper_train/ref_gemini_kore/lightning_logs
 
 ==============
 python3 -m piper_train.export_onnx \
@@ -56,7 +57,7 @@ python3 -m piper_train.export_onnx \
 /workspace/training/model.onnx
 
 python3 -m piper_train.export_onnx \
-/home/zxcv/piper_train/ref_dong_linh_filter/best_ckpt/best-ckpt-epoch=2287-val_loss=36.57.ckpt \
+/home/zxcv/Downloads/onnx/best-ckpt-epoch=2313-val_loss=36.52.ckpt \
 /home/zxcv/piper_train/ref_dong_linh_filter/model.onnx
 
 scp /workspace/training/vdc_channel/2508.onnx root@37.27.203.167:/usr/share/nginx/28072025/html/checkpoints
@@ -64,6 +65,6 @@ scp /workspace/training/vdc_channel/2508.onnx root@37.27.203.167:/usr/share/ngin
 cp /workspace/training/lightning_logs/version_0/checkpoints/*.ckpt /workspace/training/best_ckpt
 
 python /workspace/piper/src/python/auto_export_onnx.py \
--c /workspace/training/lightning_logs/version_1/checkpoints \
--o /workspace/training/onnx \
--i 120
+-c /workspace/train/lightning_logs/version_0/checkpoints \
+-o /workspace/train/onnx \
+-i 60

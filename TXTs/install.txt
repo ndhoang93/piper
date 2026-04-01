@@ -1,6 +1,20 @@
 git clone https://github.com/ndhoang93/piper.git
 
 cd piper/src/python
+conda create --name piper python=3.10 cuda-toolkit=12.8
+conda activate piper
+conda install pip=24.0 setuptools=80.9.0 wheel -y
+pip install -e .
+pip install 'numpy>=1.19.0,<2.0' torchmetrics==0.11.4 six gdown
+sudo apt-get install espeak-ng ncdu -y
+./build_monotonic_align.sh
+
+
+gdown 1nQMZZBs5I-nvSXbDQwRsay5mvRNiSAxQ
+gdown 1zPRp2HrkUuqiMi2lNx7WDT3DVWYkNBWP
+
+
+
 sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt install -y python3.10-dev && sudo apt install -y python3.10-venv
 python3.10 -m venv .venv

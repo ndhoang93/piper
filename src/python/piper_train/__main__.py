@@ -121,6 +121,15 @@ def main():
 
     dict_args = vars(args)
     dict_args["test_sentences"] = test_sentences
+
+    # Custom validation dataset
+    if args.validation_dataset_dir is not None:
+        val_dataset_dir = Path(args.validation_dataset_dir)
+        val_dataset_path = val_dataset_dir / "dataset.jsonl"
+        dict_args["validation_dataset"] = [val_dataset_path]
+        _LOGGER.info("Using custom validation dataset from %s", val_dataset_dir)
+    else:
+        dict_args["validation_dataset"] = None
     if args.quality == "x-low":
         dict_args["hidden_channels"] = 96
         dict_args["inter_channels"] = 96

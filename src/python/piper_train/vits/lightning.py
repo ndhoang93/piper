@@ -65,7 +65,7 @@ class VitsModel(pl.LightningModule):
         batch_size: int = 1,
         lr_decay: float = 0.999875,
         init_lr_ratio: float = 1.0,
-        warmup_epochs: int = 10,
+        warmup_epochs: int = 5,
         c_mel: int = 55,
         c_kl: float = 1.0,
         grad_clip: Optional[float] = None,
@@ -74,6 +74,7 @@ class VitsModel(pl.LightningModule):
         num_test_examples: int = 5,
         validation_split: float = 0.1,
         max_phoneme_ids: Optional[int] = None,
+        validation_dataset: Optional[List[Union[str, Path]]] = None,
         **kwargs,
     ):
         super().__init__()
@@ -113,7 +114,7 @@ class VitsModel(pl.LightningModule):
         self._train_dataset: Optional[Dataset] = None
         self._val_dataset: Optional[Dataset] = None
         self._test_dataset: Optional[Dataset] = None
-        self._load_datasets(validation_split, num_test_examples, max_phoneme_ids, test_sentences)
+        self._load_datasets(validation_split, num_test_examples, max_phoneme_ids, test_sentences, validation_dataset)
 
         # State kept between training optimizers
         self._y = None
@@ -125,6 +126,7 @@ class VitsModel(pl.LightningModule):
         num_test_examples: int,
         max_phoneme_ids: Optional[int] = None,
         test_sentences: Optional[List[dict]] = None,
+        validation_dataset: Optional[List[Union[str, Path]]] = None,
     ):
         if self.hparams.dataset is None:
             _LOGGER.debug("No dataset to load")
@@ -134,7 +136,34 @@ class VitsModel(pl.LightningModule):
             self.hparams.dataset, max_phoneme_ids=max_phoneme_ids
         )
 
-        if test_sentences is not None:
+        # Custom validation dataset provided
+        if validation_dataset is not None:
+            self._val_dataset = PiperDataset(
+                validation_dataset, max_phoneme_ids=max_phoneme_ids
+            )
+            _LOGGER.info(
+                "Using custom validation dataset with %s utterance(s). "
+                "--validation-split is ignored.",
+                len(self._val_dataset),
+            )
+
+            if test_sentences is not None:
+                self._test_dataset = TestSentenceDataset(
+                    phoneme_ids_list=[s["phoneme_ids"] for s in test_sentences],
+                    texts=[s["text"] for s in test_sentences],
+                )
+                self._train_dataset = full_dataset
+                _LOGGER.info(
+                    "Using %s custom test sentence(s). "
+                    "--num-test-examples is ignored.",
+                    len(self._test_dataset),
+                )
+            else:
+                train_set_size = len(full_dataset) - num_test_examples
+                self._train_dataset, self._test_dataset = random_split(
+                    full_dataset, [train_set_size, num_test_examples]
+                )
+        elif test_sentences is not None:
             self._test_dataset = TestSentenceDataset(
                 phoneme_ids_list=[s["phoneme_ids"] for s in test_sentences],
                 texts=[s["text"] for s in test_sentences],
@@ -370,6 +399,14 @@ class VitsModel(pl.LightningModule):
         parser = parent_parser.add_argument_group("VitsModel")
         parser.add_argument("--batch-size", type=int, required=True)
         parser.add_argument("--validation-split", type=float, default=0.1)
+        parser.add_argument(
+            "--validation-dataset-dir",
+            type=str,
+            default=None,
+            help="Path to a pre-processed dataset directory for validation. "
+                 "When provided, --validation-split is ignored and this dataset "
+                 "is used as-is for validation.",
+        )
         parser.add_argument("--num-test-examples", type=int, default=5)
         parser.add_argument(
             "--test-sentences",
