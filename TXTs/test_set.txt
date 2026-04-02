@@ -16,10 +16,15 @@ Sorcery Pháp Thuật và utility Aspects khía cạnh hỗ trợ cũng hữu í
 Aspirant Ứng viên! Chào mừng đến với Nightmare Spell Ác Mộng Ma Pháp. Hãy chuẩn bị cho First Trial Thử Thách Đầu Tiên của bạn.
 Ký Ức được tạo từ Soul Essence Tinh Hoa Linh Hồn nhưng có thể mang hình dạng vật chất khi được triệu hồi.
 Soul Essence Tinh Hoa Linh Hồn là một dạng năng lượng tinh thần huyền bí.
-Đợi tóc khô gần hết, cả nhóm mới quay về thôn Chu Gia Bá.
-Nhà của Chu Cẩu Oa ở đầu phía tây thôn, gần con đường lớn dẫn lên trấn.
-Tôi thanh toán bằng PayPal nhé.
-So sánh Toyota với VinFast cái nào bền hơn?
-Kênh Facebook của anh ấy nhiều người theo dõi lắm!
-Lâm Mặc vội vàng đi đến nhà vệ sinh bên cạnh, nhìn vào gương.
-Trong gương, mắt phải của hắn hoàn toàn khác trước, tròng trắng mắt biến thành màu máu yêu dị, đồng tử thay vào đó là một vòng tròn màu đen.
+Nhớ upload trước khi về nhé.
+Cần cấu hình lại release mới chạy được.
+Triển khai lên production bằng library chưa?
+Anh review lại cái data giúp em trước buổi meeting.
+Mình edit xong cái email rồi mà server vẫn lỗi!
+Lỗi này liên quan đến chatbot.
+Kiến trúc hệ thống đang dùng prototype.
+Nên monitor sớm đi kẻo muộn!
+Instagram vừa cập nhật giao diện mới.
+Bản free có nhiều tính năng hơn.
+Không!
+Ừ, được đó.

@@ -100,7 +100,7 @@ def main():
         os.makedirs(best_ckpt_dir)
 
     callbacks.append(ModelCheckpoint(
-        save_top_k=3,
+        save_top_k=6,
         monitor="val_loss",
         mode="min",
         dirpath=best_ckpt_dir,
