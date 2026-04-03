@@ -7,6 +7,7 @@ import os
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from delay_save_checkpoint import DelayedModelCheckpoint
 
 from .vits.lightning import VitsModel
 
@@ -99,12 +100,14 @@ def main():
     if not os.path.exists(best_ckpt_dir):
         os.makedirs(best_ckpt_dir)
 
-    callbacks.append(ModelCheckpoint(
-        save_top_k=6,
+    callbacks.append(DelayedModelCheckpoint(
+        start_after_step=10000,
+        every_n_train_steps=1000,
         monitor="val_loss",
         mode="min",
+        save_top_k=6,
         dirpath=best_ckpt_dir,
-        filename='best-ckpt-{epoch:02d}-{val_loss:.2f}'
+        filename='best_ckpt_{epoch:02d}_{step:06d}_{val_loss:.2f}'
     ))
 
     if args.early_stopping_patience is not None:
