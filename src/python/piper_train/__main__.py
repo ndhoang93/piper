@@ -7,7 +7,7 @@ import os
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from delay_save_checkpoint import DelayedModelCheckpoint
+from .delay_save_checkpoint import DelayedModelCheckpoint
 
 from .vits.lightning import VitsModel
 
