@@ -1,8 +1,8 @@
 python3 -m piper_train.preprocess \
-  --max-workers 16 \
+  --max-workers 28 \
   --language vi \
-  --input-dir /home/zxcv/Projects/python/viterbox-tts/gemini_kore_45_75_55/ \
-  --output-dir /home/zxcv/piper_train/ref_gemini_kore/ \
+  --input-dir /workspace/dataset/ \
+  --output-dir /workspace/train/ \
   --dataset-format ljspeech \
   --single-speaker \
   --sample-rate 22050
@@ -11,19 +11,18 @@ python3 -m piper_train.preprocess \
 
 python3 -m piper_train \
     --dataset-dir /workspace/train/ \
+    --validation-split 0.02 \
     --quality medium \
     --gradient_clip_val 1.0 \
-    --learning-rate 5e-5 \
+    --learning-rate 2e-4 \
     --precision 16 \
     --accelerator gpu \
     --devices 1 \
     --batch-size 32 \
-    --validation-split 0.05 \
     --test-sentences /workspace/piper/TXTs/test_set.txt \
-    --max_epochs 3000 \
-    --early-stopping-patience 100 \
-    --num-workers 4 \
-    --resume_from_checkpoint /workspace/dataset/epoch=2278-step=1488236.ckpt \
+    --max_epochs 1500 \
+    --num-workers 8 \
+    --resume_from_checkpoint /workspace/lessac_clean_base.ckpt \
     --checkpoint-epochs 1
 
 ================
@@ -33,16 +32,15 @@ python3 -m piper_train \
     --validation-dataset-dir /home/zxcv/piper_train/ref_gemini_kore/validate_set/ \
     --quality medium \
     --gradient_clip_val 1.0 \
-    --learning-rate 2e-4 \
+    --learning-rate 1e-4 \
     --precision 16 \
     --accelerator gpu \
     --devices 1 \
     --batch-size 32 \
     --test-sentences /home/zxcv/Projects/python/piper_hoangnd/TXTs/test_set.txt \
-    --max_epochs 3000 \
-    --early-stopping-patience 120 \
+    --max_epochs 1500 \
     --num-workers 8 \
-    --resume_from_checkpoint /home/zxcv/Projects/python/piper_hoangnd/src/python/vi_base.ckpt \
+    --resume_from_checkpoint /workspace/train/lightning_logs/version_0/checkpoints/epoch=147-step=68672.ckpt \
     --checkpoint-epochs 1
 
 ====================
@@ -53,8 +51,8 @@ tensorboard --logdir /home/zxcv/piper_train/ref_gemini_kore/lightning_logs
 
 ==============
 python3 -m piper_train.export_onnx \
-/workspace/traning/lightning_logs/version_0/checkpoints/*.ckpt \
-/workspace/training/model.onnx
+/home/zxcv/Downloads/ref_gemini_kore/best_ckpt_epoch=135_step=175000_val_loss=32.83.ckpt \
+/home/zxcv/Projects/php/khanhvy_audiobook_backend/worker_python/models/ref_kore_gemini_e135.onnx
 
 python3 -m piper_train.export_onnx \
 /home/zxcv/Downloads/onnx/best-ckpt-epoch=2313-val_loss=36.52.ckpt \
@@ -66,5 +64,10 @@ cp /workspace/training/lightning_logs/version_0/checkpoints/*.ckpt /workspace/tr
 
 python /workspace/piper/src/python/auto_export_onnx.py \
 -c /workspace/train/lightning_logs/version_0/checkpoints \
--o /workspace/train/onnx \
+-o /workspace/onnx \
 -i 60
+
+scp /workspace/onnx/best-ckpt-epoch=47-val_loss=34.59.ckpt.onnx root@95.216.145.157:/usr/share/nginx/html
+
+ssh -p 37827 root@ssh8.vast.ai -L 8080:localhost:8080
+https://154.12.38.116:48062/tree/workspace/train/best_ckpt

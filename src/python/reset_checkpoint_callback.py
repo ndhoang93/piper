@@ -1,7 +1,7 @@
 import torch
 from pathlib import Path
 
-ckpt = torch.load("/home/zxcv/Downloads/epoch=2221-step=1424624.ckpt", map_location="cpu")
+ckpt = torch.load("/home/zxcv/Downloads/lessac.ckpt", map_location="cpu")
 
 # Reset callback val_loss
 for cb_key, cb_state in ckpt["callbacks"].items():
@@ -28,5 +28,5 @@ ckpt["global_step"] = 0
 if "loops" in ckpt:
     del ckpt["loops"]
 
-torch.save(ckpt, "vi_base.ckpt")
+torch.save(ckpt, "lessac_clean_base.ckpt")
 print("Done")
